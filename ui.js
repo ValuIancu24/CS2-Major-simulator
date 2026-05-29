@@ -259,12 +259,18 @@ function renderBracket(state) {
 
 // ---------- Statistics rendering ----------
 
-function renderStats(stats, runs) {
+function renderStats(stats, runs, pickemPanel = null) {
   const body = document.getElementById("stats-body");
   body.innerHTML = "";
 
+  if (pickemPanel) body.appendChild(pickemPanel);
+
   if (!stats || runs === 0) {
-    body.innerHTML = '<p class="stats-empty">Run a simulation first.</p>';
+    if (!pickemPanel) {
+      body.innerHTML = '<p class="stats-empty">Run a simulation first.</p>';
+    } else {
+      body.appendChild(el("p", { class: "stats-empty" }, ["Run a simulation first to see per-team breakdown."]));
+    }
     return;
   }
 
@@ -428,6 +434,228 @@ function renderFinalResults(champion, runnerUp) {
   ]);
 }
 
+// ---------- Pickems modal ----------
+
+const PICKEM_CATS = [
+  { key: "threeZero", label: "3-0",       limit: 2, cls: "pickem-3-0" },
+  { key: "qualify",   label: "3-1 / 3-2", limit: 6, cls: "pickem-qual" },
+  { key: "zeroThree", label: "0-3",       limit: 2, cls: "pickem-0-3" },
+];
+
+function renderPickemsModal(stageNum, stageState, pickems) {
+  const title = document.getElementById("pickems-title");
+  const body = document.getElementById("pickems-body");
+  title.textContent = `Pickems — Stage ${stageNum}`;
+  body.innerHTML = "";
+
+  if (!stageState || !stageState.teams) {
+    body.appendChild(el("p", { class: "stats-empty" }, ["Stage not available yet."]));
+    return;
+  }
+
+  // Header toolbar.
+  const headerRow = el("div", { class: "pickem-header-row" }, [
+    el("span", { class: "pickem-instructions" }, [
+      "Drag teams from the pool into a colored zone. Drop on a filled slot to swap. Drop back in the pool to remove.",
+    ]),
+    el("button", {
+      class: "btn-clear-pickems",
+      onClick: () => window.MajorApp.handleClearPickems(stageNum),
+    }, ["Clear all"]),
+  ]);
+  body.appendChild(headerRow);
+
+  // ---------- Zones: visual destinations ----------
+  const zones = el("div", { class: "pickem-zones" });
+  for (const cat of PICKEM_CATS) {
+    const slotsEl = el("div", { class: "pickem-zone-slots" });
+    for (let i = 0; i < cat.limit; i++) {
+      const teamName = pickems[cat.key][i];
+      slotsEl.appendChild(
+        teamName
+          ? buildFilledSlot(stageNum, cat, i, teamName)
+          : buildEmptySlot(stageNum, cat, i)
+      );
+    }
+    const filled = pickems[cat.key].length;
+    zones.appendChild(el("div", { class: `pickem-zone ${cat.cls}` }, [
+      el("div", { class: "pickem-zone-header" }, [
+        el("span", { class: "pickem-zone-label" }, [cat.label]),
+        el("span", { class: "pickem-zone-count" }, [`${filled}/${cat.limit}`]),
+      ]),
+      slotsEl,
+    ]));
+  }
+  body.appendChild(zones);
+
+  // ---------- Pool: compact grid; drop here to unassign ----------
+  const teams = stageState.teams.slice().sort((a, b) => a.initialSeed - b.initialSeed);
+  const pool = el("div", { class: "pickem-pool" });
+  for (const team of teams) {
+    const isAssigned = currentCategoryFor(pickems, team.name) !== "none";
+    pool.appendChild(buildPoolChip(team, isAssigned));
+  }
+  attachPoolDrop(pool, stageNum);
+  body.appendChild(pool);
+}
+
+// ---------- Pickem sub-builders ----------
+
+function buildFilledSlot(stageNum, cat, slotIdx, teamName) {
+  const slot = el("div", {
+    class: "pickem-slot filled",
+    title: `${teamName} — drag to move or remove`,
+  });
+  slot.style.backgroundColor = window.MajorData.colorFromName(teamName);
+  slot.textContent = window.MajorData.teamInitials(teamName);
+  loadTeamLogo(slot, teamName);
+  attachDrag(slot, teamName);
+  attachSlotDrop(slot, stageNum, cat.key, slotIdx);
+  return slot;
+}
+
+function buildEmptySlot(stageNum, cat, slotIdx) {
+  const slot = el("div", { class: "pickem-slot empty" });
+  attachSlotDrop(slot, stageNum, cat.key, slotIdx);
+  return slot;
+}
+
+function buildPoolChip(team, isAssigned) {
+  const chip = el("div", {
+    class: "pickem-chip" + (isAssigned ? " assigned" : ""),
+  });
+  const logoEl = el("div", { class: "pickem-chip-logo team-logo" });
+  if (isAssigned) {
+    // Team is placed in a zone — show empty placeholder dot here.
+    logoEl.classList.add("placeholder");
+  } else {
+    logoEl.style.backgroundColor = window.MajorData.colorFromName(team.name);
+    logoEl.textContent = window.MajorData.teamInitials(team.name);
+    loadTeamLogo(logoEl, team.name);
+    attachDrag(chip, team.name);
+  }
+  chip.appendChild(logoEl);
+  chip.appendChild(el("div", { class: "pickem-chip-name", title: team.name }, [team.name]));
+  return chip;
+}
+
+// ---------- Drag & drop wiring ----------
+
+function attachDrag(node, teamName) {
+  node.draggable = true;
+  node.classList.add("draggable");
+  node.addEventListener("dragstart", (e) => {
+    e.dataTransfer.setData("text/plain", teamName);
+    e.dataTransfer.effectAllowed = "move";
+    node.classList.add("dragging");
+  });
+  node.addEventListener("dragend", () => {
+    node.classList.remove("dragging");
+  });
+}
+
+function attachSlotDrop(slot, stageNum, categoryKey, slotIdx) {
+  slot.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    slot.classList.add("drag-over");
+  });
+  slot.addEventListener("dragleave", () => {
+    slot.classList.remove("drag-over");
+  });
+  slot.addEventListener("drop", (e) => {
+    e.preventDefault();
+    e.stopPropagation(); // don't bubble up to pool's drop handler
+    slot.classList.remove("drag-over");
+    const teamName = e.dataTransfer.getData("text/plain");
+    if (teamName) {
+      window.MajorApp.handleDropOnPickemSlot(stageNum, teamName, categoryKey, slotIdx);
+    }
+  });
+}
+
+function attachPoolDrop(pool, stageNum) {
+  pool.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    pool.classList.add("drag-over");
+  });
+  pool.addEventListener("dragleave", (e) => {
+    if (!pool.contains(e.relatedTarget)) pool.classList.remove("drag-over");
+  });
+  pool.addEventListener("drop", (e) => {
+    e.preventDefault();
+    pool.classList.remove("drag-over");
+    const teamName = e.dataTransfer.getData("text/plain");
+    if (teamName) {
+      window.MajorApp.handleDropOnPickemPool(stageNum, teamName);
+    }
+  });
+}
+
+function currentCategoryFor(pickems, teamName) {
+  if (pickems.threeZero.includes(teamName)) return "threeZero";
+  if (pickems.qualify.includes(teamName)) return "qualify";
+  if (pickems.zeroThree.includes(teamName)) return "zeroThree";
+  return "none";
+}
+
+// ---------- Pickem stats panel (rendered inside Stats modal) ----------
+
+function renderPickemStatsPanel(pickems, pickemStats, stageNum) {
+  if (!pickems) return null;
+  const totalPicks = pickems.threeZero.length + pickems.qualify.length + pickems.zeroThree.length;
+
+  const viewBtn = el("button", {
+    class: "btn-view-pickems",
+    onClick: () => window.MajorApp.openPickemsFromStats(stageNum),
+  }, ["View Pickems"]);
+
+  const header = el("div", { class: "pickem-panel-header" }, [
+    el("h3", {}, [`Pickems — Stage ${stageNum} (${totalPicks}/10 picked)`]),
+    viewBtn,
+  ]);
+
+  // Only show stats once the user has committed all 10 picks. Until then
+  // partial-pickem accuracy isn't meaningful (max possible score is lower).
+  if (totalPicks < 10) {
+    return el("div", { class: "pickem-panel empty" }, [
+      header,
+      el("p", { class: "stats-empty" }, [
+        `Complete your pickems first — ${totalPicks}/10 set. ` +
+        "You need 2 picks for 3-0, 6 for 3-1 / 3-2, and 2 for 0-3.",
+      ]),
+    ]);
+  }
+
+  if (!pickemStats || pickemStats.runs === 0) {
+    return el("div", { class: "pickem-panel" }, [
+      header,
+      el("p", { class: "stats-empty" }, ["Run a simulation to compute pickem accuracy."]),
+    ]);
+  }
+
+  const expectedStr = pickemStats.expected.toFixed(2);
+  const pGte5Str = (pickemStats.pGte5 * 100).toFixed(1) + "%";
+  const pPerfectStr = (pickemStats.pPerfect * 100).toFixed(1) + "%";
+
+  return el("div", { class: "pickem-panel" }, [
+    header,
+    el("div", { class: "pickem-metrics" }, [
+      pickemMetric("Average Correct Picks", `${expectedStr} / 10`),
+      pickemMetric("Success Chances (≥5)", pGte5Str, "highlight"),
+      pickemMetric("Perfect Pickem Chances", pPerfectStr),
+    ]),
+  ]);
+}
+
+function pickemMetric(label, value, extraCls = "") {
+  return el("div", { class: `pickem-metric ${extraCls}` }, [
+    el("div", { class: "pickem-metric-label" }, [label]),
+    el("div", { class: "pickem-metric-value" }, [value]),
+  ]);
+}
+
 window.MajorUI = {
   renderBracket,
   renderStats,
@@ -435,4 +663,6 @@ window.MajorUI = {
   showWarningBanner,
   setSimStatus,
   renderPlayoffs,
+  renderPickemsModal,
+  renderPickemStatsPanel,
 };

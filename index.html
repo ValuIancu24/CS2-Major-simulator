@@ -21,6 +21,7 @@
       </nav>
 
       <div class="header-actions">
+        <button class="btn-stats" id="open-pickems">Pickems</button>
         <button class="btn-stats" id="open-stats">Statistics</button>
         <button class="btn-reset-stage" id="reset-stage">Reset Stage</button>
       </div>
@@ -48,6 +49,15 @@
         <div id="stats-body" class="stats-body">
           <p class="stats-empty">Run a simulation first.</p>
         </div>
+      </div>
+    </div>
+
+    <!-- Pickems modal -->
+    <div class="modal hidden" id="pickems-modal">
+      <div class="modal-content">
+        <button class="modal-close" id="close-pickems">×</button>
+        <h2 id="pickems-title">Pickems</h2>
+        <div id="pickems-body" class="pickems-body"></div>
       </div>
     </div>
 

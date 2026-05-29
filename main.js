@@ -18,7 +18,15 @@ const APP = {
   lastSim: { 1: null, 2: null, 3: null },
   // Has the bracket changed since the last simulation?
   stateChangedSinceSim: { 1: true, 2: true, 3: true },
+  // User pickems per stage. Same team must not appear in more than one list.
+  pickems: {
+    1: { threeZero: [], qualify: [], zeroThree: [] },
+    2: { threeZero: [], qualify: [], zeroThree: [] },
+    3: { threeZero: [], qualify: [], zeroThree: [] },
+  },
 };
+
+const PICKEM_LIMITS = { threeZero: 2, qualify: 6, zeroThree: 2 };
 
 // ---------- Persistence ----------
 
@@ -28,6 +36,7 @@ function saveState() {
       stages: APP.stages,
       currentStage: APP.currentStage,
       unlocked: APP.unlocked,
+      pickems: APP.pickems,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   } catch (e) { /* quota or disabled */ }
@@ -41,8 +50,49 @@ function loadState() {
     if (payload.stages) APP.stages = payload.stages;
     if (payload.currentStage) APP.currentStage = payload.currentStage;
     if (payload.unlocked) APP.unlocked = payload.unlocked;
+    if (payload.pickems) {
+      // Merge defensively: keep default empty buckets if save is partial.
+      for (const k of [1, 2, 3]) {
+        if (payload.pickems[k]) APP.pickems[k] = payload.pickems[k];
+      }
+    }
     return true;
   } catch (e) { return false; }
+}
+
+// ---------- Pickem handlers ----------
+
+// Move a team into the chosen category, removing it from any others.
+// `category` is "threeZero" | "qualify" | "zeroThree" | "none".
+// Returns true on success, false if the target category is already full.
+function setPickem(stageNum, teamName, category) {
+  if (!APP.pickems[stageNum]) return false;
+  const p = APP.pickems[stageNum];
+  // Always strip from existing buckets first.
+  for (const k of ["threeZero", "qualify", "zeroThree"]) {
+    p[k] = p[k].filter(n => n !== teamName);
+  }
+  if (category && category !== "none") {
+    if (p[category].length >= PICKEM_LIMITS[category]) return false;
+    p[category].push(teamName);
+  }
+  saveState();
+  return true;
+}
+
+function clearPickems(stageNum) {
+  if (!APP.pickems[stageNum]) return;
+  APP.pickems[stageNum] = { threeZero: [], qualify: [], zeroThree: [] };
+  saveState();
+}
+
+function pickemCategoryOf(stageNum, teamName) {
+  const p = APP.pickems[stageNum];
+  if (!p) return "none";
+  if (p.threeZero.includes(teamName)) return "threeZero";
+  if (p.qualify.includes(teamName)) return "qualify";
+  if (p.zeroThree.includes(teamName)) return "zeroThree";
+  return "none";
 }
 
 // ---------- Stage initialization ----------
@@ -161,7 +211,10 @@ function namesEqual(a, b) {
 
 function tearDown(nextKey) {
   APP.stages[nextKey] = null;
-  if (nextKey !== "playoffs") APP.lastSim[nextKey] = null;
+  if (nextKey !== "playoffs") {
+    APP.lastSim[nextKey] = null;
+    clearPickems(nextKey);
+  }
   APP.unlocked = APP.unlocked.filter(s => s !== String(nextKey));
   if (APP.currentStage === String(nextKey)) {
     // Walk back to the most recent unlocked stage.
@@ -187,6 +240,7 @@ function syncStage1to2() {
   if (!namesEqual(seededNames(APP.stages[2]), expected)) {
     initStage(2, window.MajorData.STAGE2_DIRECT_INVITES, stage1);
     APP.lastSim[2] = null;
+    clearPickems(2);
   }
 }
 
@@ -205,6 +259,7 @@ function syncStage2to3() {
   if (!namesEqual(seededNames(APP.stages[3]), expected)) {
     initStage(3, window.MajorData.STAGE3_DIRECT_INVITES, stage2);
     APP.lastSim[3] = null;
+    clearPickems(3);
   }
 }
 
@@ -471,6 +526,116 @@ function refresh() {
   saveState();
 }
 
+function openStatsModal() {
+  const num = currentStageNumber();
+  if (num === "playoffs") {
+    document.getElementById("stats-body").innerHTML =
+      '<p class="stats-empty">Statistics not available for playoffs.</p>';
+  } else {
+    const last = APP.lastSim[num];
+    const pickems = APP.pickems[num];
+    let pickemStats = null;
+    if (last && last.runFinals) {
+      pickemStats = window.MajorMC.computePickemStats(last.runFinals, pickems);
+    }
+    const panel = window.MajorUI.renderPickemStatsPanel(pickems, pickemStats, num);
+    if (last) window.MajorUI.renderStats(last.stats, last.runs, panel);
+    else window.MajorUI.renderStats(null, 0, panel);
+  }
+  document.getElementById("stats-modal").classList.remove("hidden");
+}
+
+function openPickemsModal() {
+  const num = currentStageNumber();
+  if (num === "playoffs") {
+    // Pickems are per-stage only — playoffs has no Swiss to predict.
+    return;
+  }
+  const stage = APP.stages[num];
+  window.MajorUI.renderPickemsModal(num, stage, APP.pickems[num]);
+  document.getElementById("pickems-modal").classList.remove("hidden");
+}
+
+// Called from the "View Pickems" button inside the Statistics modal.
+function openPickemsFromStats(stageNum) {
+  document.getElementById("stats-modal").classList.add("hidden");
+  // Make sure we're on the stage whose stats we just viewed.
+  if (String(currentStageNumber()) !== String(stageNum)) {
+    setStage(String(stageNum));
+  }
+  openPickemsModal();
+}
+
+function handleSetPickem(stageNum, teamName, category) {
+  setPickem(stageNum, teamName, category);
+  refreshPickemsModal(stageNum);
+}
+
+function handleClearPickems(stageNum) {
+  clearPickems(stageNum);
+  refreshPickemsModal(stageNum);
+}
+
+function refreshPickemsModal(stageNum) {
+  window.MajorUI.renderPickemsModal(stageNum, APP.stages[stageNum], APP.pickems[stageNum]);
+}
+
+function currentCategoryOf(stageNum, teamName) {
+  const p = APP.pickems[stageNum];
+  if (!p) return null;
+  if (p.threeZero.includes(teamName)) return "threeZero";
+  if (p.qualify.includes(teamName)) return "qualify";
+  if (p.zeroThree.includes(teamName)) return "zeroThree";
+  return null;
+}
+
+// Drag from anywhere, drop on a specific zone slot. Overwrite if the slot is
+// occupied (the displaced team becomes unassigned). No-op if dropping within
+// the same category (slot position within a category is arbitrary).
+function handleDropOnPickemSlot(stageNum, teamName, targetCategory, targetSlotIdx) {
+  const p = APP.pickems[stageNum];
+  if (!p) return;
+
+  const currentCat = currentCategoryOf(stageNum, teamName);
+  const displaced = p[targetCategory][targetSlotIdx];
+
+  if (displaced === teamName) return;
+  if (currentCat === targetCategory) return;
+
+  if (currentCat) {
+    p[currentCat] = p[currentCat].filter(n => n !== teamName);
+  }
+
+  if (displaced !== undefined) {
+    // Slot was filled — replace at displaced team's current index.
+    const idx = p[targetCategory].indexOf(displaced);
+    if (idx >= 0) p[targetCategory][idx] = teamName;
+    else p[targetCategory].push(teamName);
+  } else {
+    // Empty slot — just append (arrays are kept compact, slot position is cosmetic).
+    p[targetCategory].push(teamName);
+  }
+
+  saveState();
+  refreshPickemsModal(stageNum);
+}
+
+// Drag from a zone slot back to the pool — unassign the team from any category.
+function handleDropOnPickemPool(stageNum, teamName) {
+  const p = APP.pickems[stageNum];
+  if (!p) return;
+  let changed = false;
+  for (const k of ["threeZero", "qualify", "zeroThree"]) {
+    const before = p[k].length;
+    p[k] = p[k].filter(n => n !== teamName);
+    if (p[k].length !== before) changed = true;
+  }
+  if (changed) {
+    saveState();
+    refreshPickemsModal(stageNum);
+  }
+}
+
 function wireEvents() {
   document.querySelectorAll("#stage-tabs .stage-tab").forEach(tab => {
     tab.addEventListener("click", () => setStage(tab.dataset.stage));
@@ -478,26 +643,23 @@ function wireEvents() {
   document.getElementById("btn-simulate").addEventListener("click", runSimulationForCurrent);
   document.getElementById("reset-stage").addEventListener("click", resetCurrentStage);
 
-  document.getElementById("open-stats").addEventListener("click", () => {
-    const num = currentStageNumber();
-    if (num === "playoffs") {
-      document.getElementById("stats-body").innerHTML =
-        '<p class="stats-empty">Statistics not available for playoffs.</p>';
-    } else {
-      const last = APP.lastSim[num];
-      if (last) window.MajorUI.renderStats(last.stats, last.runs);
-      else window.MajorUI.renderStats(null, 0);
-    }
-    document.getElementById("stats-modal").classList.remove("hidden");
-  });
-
+  document.getElementById("open-stats").addEventListener("click", openStatsModal);
   document.getElementById("close-stats").addEventListener("click", () => {
     document.getElementById("stats-modal").classList.add("hidden");
   });
-
   document.getElementById("stats-modal").addEventListener("click", (e) => {
     if (e.target.id === "stats-modal") {
       document.getElementById("stats-modal").classList.add("hidden");
+    }
+  });
+
+  document.getElementById("open-pickems").addEventListener("click", openPickemsModal);
+  document.getElementById("close-pickems").addEventListener("click", () => {
+    document.getElementById("pickems-modal").classList.add("hidden");
+  });
+  document.getElementById("pickems-modal").addEventListener("click", (e) => {
+    if (e.target.id === "pickems-modal") {
+      document.getElementById("pickems-modal").classList.add("hidden");
     }
   });
 }
@@ -570,6 +732,11 @@ window.MajorApp = {
   handleRoundHigherSeed,
   handlePlayoffsClick,
   setStage,
+  handleSetPickem,
+  handleClearPickems,
+  handleDropOnPickemSlot,
+  handleDropOnPickemPool,
+  openPickemsFromStats,
 };
 
 document.addEventListener("DOMContentLoaded", boot);
