@@ -52,26 +52,41 @@ function el(tag, attrs = {}, children = []) {
   return node;
 }
 
+// Try each candidate filename in order until one loads; then apply it.
+// The team-logo element shows a colored initials fallback while it tries —
+// if every candidate fails, the fallback simply stays visible.
+function loadTeamLogo(logoEl, name) {
+  const candidates = window.MajorData.logoCandidates(name);
+  let i = 0;
+  const tryNext = () => {
+    if (i >= candidates.length) return;
+    const slug = candidates[i++];
+    const url = `assets/logos/${slug}.png`;
+    const img = new Image();
+    img.onload = () => {
+      logoEl.style.backgroundImage = `url("${url}")`;
+      // Drop the initials-fallback background so transparent PNGs show the
+      // page color through, not the colored circle behind them.
+      logoEl.style.backgroundColor = "transparent";
+      logoEl.textContent = "";
+    };
+    img.onerror = tryNext;
+    img.src = url;
+  };
+  tryNext();
+}
+
 // Build a team "chip" (logo + name). team can be null for unknown TBD.
 function teamChip(team, options = {}) {
-  const { clickable = false, state = null, onClick = null, highlight = null } = options;
+  const { clickable = false, onClick = null, highlight = null } = options;
 
   const logoEl = el("div", { class: "team-logo" });
   if (team) {
-    const slug = window.MajorData.logoSlug(team.name);
-    const img = new Image();
-    img.onload = () => {
-      logoEl.style.backgroundImage = `url("assets/logos/${slug}.png")`;
-      logoEl.textContent = "";
-    };
-    img.onerror = () => {
-      logoEl.style.backgroundColor = window.MajorData.colorFromName(team.name);
-      logoEl.textContent = window.MajorData.teamInitials(team.name);
-    };
-    img.src = `assets/logos/${slug}.png`;
-    // Fallback shows immediately while image loads
+    // Fallback (colored circle + initials) shown immediately; replaced if a
+    // candidate logo file loads.
     logoEl.style.backgroundColor = window.MajorData.colorFromName(team.name);
     logoEl.textContent = window.MajorData.teamInitials(team.name);
+    loadTeamLogo(logoEl, team.name);
   } else {
     logoEl.textContent = "?";
     logoEl.style.backgroundColor = "#2c3245";
@@ -96,20 +111,10 @@ function teamSlot(team) {
   if (!team) {
     return el("div", { class: "empty-slot" }, ["?"]);
   }
-  const slot = el("div", {
-    class: "filled-slot",
-    title: team.name,
-  });
-  const slug = window.MajorData.logoSlug(team.name);
+  const slot = el("div", { class: "filled-slot", title: team.name });
   slot.style.backgroundColor = window.MajorData.colorFromName(team.name);
   slot.textContent = window.MajorData.teamInitials(team.name);
-  const img = new Image();
-  img.onload = () => {
-    slot.style.backgroundImage = `url("assets/logos/${slug}.png")`;
-    slot.textContent = "";
-  };
-  img.onerror = () => {};
-  img.src = `assets/logos/${slug}.png`;
+  loadTeamLogo(slot, team.name);
   return slot;
 }
 
@@ -270,21 +275,20 @@ function renderStats(stats, runs) {
   const grid = el("div", { class: "stats-grid" });
   for (const s of sorted) {
     const qualPct = ((s.qualified / s.runs) * 100).toFixed(1);
-    const slug = window.MajorData.logoSlug(s.name);
 
     const logo = el("div", { class: "team-logo" });
     logo.style.backgroundColor = window.MajorData.colorFromName(s.name);
     logo.textContent = window.MajorData.teamInitials(s.name);
-    const img = new Image();
-    img.onload = () => {
-      logo.style.backgroundImage = `url("assets/logos/${slug}.png")`;
-      logo.textContent = "";
-    };
-    img.src = `assets/logos/${slug}.png`;
+    loadTeamLogo(logo, s.name);
+
+    let recordCls = "start-record";
+    if (s.startStatus === "qualified") recordCls += " qual";
+    else if (s.startStatus === "eliminated") recordCls += " elim";
 
     const header = el("div", { class: "stat-card-header" }, [
       logo,
       el("div", { class: "team-name" }, [s.name]),
+      el("div", { class: recordCls }, [s.startRecord]),
       el("div", { class: "qual-rate" }, [`${qualPct}%`]),
     ]);
 
@@ -356,9 +360,9 @@ function renderPlayoffs(state) {
     return;
   }
   const rounds = [
-    { name: "Quarterfinals", count: 4 },
-    { name: "Semifinals", count: 2 },
-    { name: "Grand Final", count: 1 },
+    { name: "Quarterfinals", count: 4, format: "BO3" },
+    { name: "Semifinals",    count: 2, format: "BO3" },
+    { name: "Grand Final",   count: 1, format: "BO5" },
   ];
 
   for (let r = 0; r < rounds.length; r++) {
@@ -367,7 +371,7 @@ function renderPlayoffs(state) {
     ]);
     const matches = state.matchesByRound?.[r + 1] || [];
     for (let i = 0; i < rounds[r].count; i++) {
-      const m = matches[i] || { teamA: null, teamB: null, winner: null, format: "BO3" };
+      const m = matches[i] || { teamA: null, teamB: null, winner: null, format: rounds[r].format };
       const teamA = m.teamA ? { name: m.teamA } : null;
       const teamB = m.teamB ? { name: m.teamB } : null;
       const highlightA = m.winner ? (m.winner === m.teamA ? "winner" : "loser") : null;
@@ -387,12 +391,41 @@ function renderPlayoffs(state) {
         }),
       ]);
       col.appendChild(el("div", { class: "match-card" }, [
-        el("div", { class: "match-format" }, ["BO3"]),
+        el("div", { class: "match-format" }, [rounds[r].format]),
         row,
       ]));
     }
     root.appendChild(col);
   }
+
+  // Final results panel — appears only once the grand final has a winner.
+  const finalMatch = state.matchesByRound?.[3]?.[0];
+  if (finalMatch && finalMatch.winner) {
+    const champion = finalMatch.winner;
+    const runnerUp = finalMatch.teamA === champion ? finalMatch.teamB : finalMatch.teamA;
+    root.appendChild(renderFinalResults(champion, runnerUp));
+  }
+}
+
+function renderResultCard(label, teamName, kind) {
+  const logoEl = el("div", { class: "result-logo team-logo" });
+  logoEl.style.backgroundColor = window.MajorData.colorFromName(teamName);
+  logoEl.textContent = window.MajorData.teamInitials(teamName);
+  loadTeamLogo(logoEl, teamName);
+
+  return el("div", { class: `result-card ${kind}` }, [
+    el("div", { class: "result-label" }, [label]),
+    logoEl,
+    el("div", { class: "result-name" }, [teamName]),
+  ]);
+}
+
+function renderFinalResults(champion, runnerUp) {
+  return el("div", { class: "playoffs-results" }, [
+    el("h3", { class: "results-header" }, ["FINAL RESULTS"]),
+    renderResultCard("CHAMPION", champion, "champion"),
+    renderResultCard("RUNNER-UP", runnerUp, "runner-up"),
+  ]);
 }
 
 window.MajorUI = {

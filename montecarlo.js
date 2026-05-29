@@ -40,13 +40,16 @@ function simulateOneRun(initialState) {
     for (const m of matches) {
       const a = window.MajorSim.teamByName(state, m.teamA);
       const b = window.MajorSim.teamByName(state, m.teamB);
-      // Track who they played this round (only if newly simulated here).
+      // Only decide-and-apply NEW matches. Matches with a pre-set winner have
+      // already been applied to team.wins/losses by recomputeStage before the
+      // sim started — re-applying them here would double-count wins, push
+      // groups to odd sizes, and crash pairing/match-generation downstream.
       if (m.winner === null) {
         m.winner = decideMatch(a, b);
         opponentsByRound[a.name][state.round] = b.name;
         opponentsByRound[b.name][state.round] = a.name;
+        window.MajorSim.applyMatchResult(state, m);
       }
-      window.MajorSim.applyMatchResult(state, m);
     }
 
     if (window.MajorSim.stageComplete(state)) break;
@@ -63,6 +66,9 @@ function runSimulation(initialState, runs = SIM_RUNS, firstUnplayedRound = null)
   for (const t of initialState.teams) {
     stats[t.name] = {
       name: t.name,
+      // Snapshot of the team's standing at the moment the user clicked Simulate.
+      startRecord: `${t.wins}-${t.losses}`,
+      startStatus: t.status,
       runs: 0,
       qualified: 0,
       eliminated: 0,

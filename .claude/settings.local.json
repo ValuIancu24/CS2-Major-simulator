@@ -10,7 +10,8 @@
       "Bash(kill 477)",
       "Bash(node _verifyseed.js)",
       "Bash(node _verifycascade.js)",
-      "Bash(node _verifyhigherseed.js)"
+      "Bash(node _verifyhigherseed.js)",
+      "Bash(node --check main.js)"
     ],
     "additionalDirectories": [
       "c:\\Users\\VALI\\Desktop\\Facultate\\Facultate anii 1-3\\IDEILE MELE DE APLICATII\\CS2-Major-simulator\\assets"

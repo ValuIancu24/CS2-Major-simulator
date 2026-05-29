@@ -33,19 +33,43 @@ const STAGE2_DIRECT_INVITES = [
 ];
 
 const STAGE3_DIRECT_INVITES = [
-  { seed: 1, name: "Vitality", rating: 1000 },
-  { seed: 2, name: "NaVi",     rating: 709  },
-  { seed: 3, name: "Falcons",  rating: 508  },
-  { seed: 4, name: "MGLZ",     rating: 298  },
-  { seed: 5, name: "PARI",     rating: 260  },
-  { seed: 6, name: "Aurora",   rating: 346  },
-  { seed: 7, name: "Furia",    rating: 398  },
-  { seed: 8, name: "Mouz",     rating: 302  },
+  { seed: 1, name: "Vitality",   rating: 1000 },
+  { seed: 2, name: "NaVi",       rating: 709  },
+  { seed: 3, name: "Falcons",    rating: 508  },
+  { seed: 4, name: "Mongolz",    rating: 298  },
+  { seed: 5, name: "Parivision", rating: 260  },
+  { seed: 6, name: "Aurora",     rating: 346  },
+  { seed: 7, name: "Furia",      rating: 398  },
+  { seed: 8, name: "Mouz",       rating: 302  },
 ];
 
-// Map team name -> logo filename slug used in assets/logos/<slug>.png
-function logoSlug(name) {
-  return name.toLowerCase().replace(/\s+/g, "");
+// Map team name -> ordered list of candidate filenames to try in
+// assets/logos/<slug>.png. The loader tries them in order until one loads.
+// We accept several spellings so users can name files naturally
+// (e.g. gaimin_gladiators.png, lynn_vision.png, or the squished form).
+const LOGO_OVERRIDES = {
+  // Real-world rebrandings: data.js uses the spec name, the world uses the
+  // current org name on the logo file.
+  "pari": "parivision",
+  "mglz": "mongolz",
+};
+
+function logoCandidates(name) {
+  const lower = name.toLowerCase();
+  const noSpace = lower.replace(/\s+/g, "");
+  const underscore = lower.replace(/\s+/g, "_");
+  const dash = lower.replace(/\s+/g, "-");
+  // Split camelCase: "GaiminGladiators" -> "gaimin_gladiators"
+  const camelSplit = name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase();
+
+  const list = [];
+  if (LOGO_OVERRIDES[noSpace]) list.push(LOGO_OVERRIDES[noSpace]);
+  list.push(noSpace, underscore, dash);
+  list.push(camelSplit.replace(/\s+/g, "_"));
+  list.push(camelSplit.replace(/\s+/g, "-"));
+  list.push(camelSplit.replace(/\s+/g, ""));
+  // Dedupe preserving order
+  return [...new Set(list)];
 }
 
 // Stable color generator for the initials-fallback circle.
@@ -68,7 +92,7 @@ window.MajorData = {
   STAGE1_TEAMS,
   STAGE2_DIRECT_INVITES,
   STAGE3_DIRECT_INVITES,
-  logoSlug,
+  logoCandidates,
   colorFromName,
   teamInitials,
 };

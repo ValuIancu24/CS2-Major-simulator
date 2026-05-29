@@ -28,14 +28,17 @@ html, body {
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                "Helvetica Neue", Arial, sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   min-height: 100vh;
 }
 
 #app {
-  max-width: 1500px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 0 24px 48px;
+  padding: 0 16px 32px;
+  /* Global UI scale. Lower this to shrink the whole page proportionally
+     (text, logos, padding, gaps — everything). 1 = native size. */
+  zoom: 0.9;
 }
 
 /* ---------- Header ---------- */
@@ -50,7 +53,7 @@ html, body {
 
 .title {
   text-align: center;
-  font-size: 22px;
+  font-size: 25px;
   font-weight: 600;
   margin: 0;
   letter-spacing: 0.5px;
@@ -61,7 +64,7 @@ html, body {
   grid-template-columns: repeat(4, 1fr);
   background: var(--bg-1);
   border-radius: 999px;
-  padding: 6px;
+  padding: 7px;
   gap: 4px;
 }
 
@@ -69,8 +72,8 @@ html, body {
   background: transparent;
   border: none;
   color: var(--text-dim);
-  padding: 12px 20px;
-  font-size: 14px;
+  padding: 14px 22px;
+  font-size: 15px;
   font-weight: 500;
   border-radius: 999px;
   cursor: pointer;
@@ -103,10 +106,10 @@ html, body {
   background: var(--bg-2);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 8px 16px;
+  padding: 10px 18px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
 }
 .btn-stats:hover, .btn-reset-stage:hover {
   background: var(--bg-3);
@@ -118,10 +121,11 @@ html, body {
   background: rgba(241, 196, 15, 0.12);
   border: 1px solid rgba(241, 196, 15, 0.4);
   color: #f1c40f;
-  padding: 10px 16px;
+  padding: 12px 18px;
   border-radius: 6px;
   text-align: center;
   margin-bottom: 12px;
+  font-size: 14px;
 }
 
 .simulate-bar {
@@ -135,10 +139,10 @@ html, body {
   background: var(--accent);
   color: #fff;
   border: none;
-  padding: 12px 24px;
+  padding: 14px 28px;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
   box-shadow: var(--shadow);
 }
@@ -147,7 +151,7 @@ html, body {
 
 .sim-status {
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .hidden { display: none !important; }
@@ -155,10 +159,10 @@ html, body {
 /* ---------- Bracket columns ---------- */
 
 .bracket-view {
-  display: flex;
-  gap: 24px;
-  align-items: flex-start;
-  overflow-x: auto;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 18px;
+  align-items: start;
   padding-bottom: 12px;
 }
 
@@ -166,18 +170,19 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  min-width: 220px;
-  flex-shrink: 0;
+  /* min-width: 0 prevents grid items from blowing out the track when their
+     content has long words (logo+name etc.) */
+  min-width: 0;
 }
 
 .record-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 
 .record-group-header {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text);
   margin-bottom: 4px;
@@ -190,7 +195,7 @@ html, body {
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 4px;
+  padding: 5px;
   align-self: flex-start;
   margin-bottom: 6px;
 }
@@ -199,10 +204,10 @@ html, body {
   background: transparent;
   border: none;
   color: var(--text-dim);
-  padding: 6px 10px;
+  padding: 7px 12px;
   border-radius: 999px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
 }
 .column-controls button:hover {
   background: var(--bg-3);
@@ -216,7 +221,7 @@ html, body {
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 6px 8px;
+  padding: 7px 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -227,11 +232,11 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 7px;
 }
 
 .match-vs {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
   letter-spacing: 0.5px;
   font-weight: 600;
@@ -241,10 +246,10 @@ html, body {
   position: absolute;
   top: 4px;
   right: 6px;
-  font-size: 9px;
+  font-size: 10px;
   background: var(--bg-3);
   color: var(--text-dim);
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 3px;
   font-weight: 600;
 }
@@ -252,13 +257,13 @@ html, body {
 .team-card {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   background: var(--bg-3);
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 6px 8px;
+  padding: 7px 8px;
   cursor: pointer;
-  flex: 1;
+  flex: 1 1 0;
   transition: background 0.15s, border-color 0.15s, opacity 0.15s;
   min-width: 0;
 }
@@ -287,23 +292,23 @@ html, body {
 }
 
 .team-logo {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   color: white;
   background-position: center;
-  background-size: cover;
+  background-size: contain;
   background-repeat: no-repeat;
 }
 
 .team-name {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -315,10 +320,10 @@ html, body {
 
 .zone {
   border-radius: 6px;
-  padding: 10px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
 }
 
 .zone-qualified {
@@ -333,7 +338,7 @@ html, body {
 
 .zone-header {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 15px;
   text-align: center;
   margin-bottom: 4px;
   color: var(--text);
@@ -341,13 +346,13 @@ html, body {
 
 .zone .slot-row {
   display: flex;
-  gap: 6px;
+  gap: 7px;
   justify-content: center;
 }
 
 .zone .empty-slot {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--bg-1);
   border: 1px dashed var(--border);
@@ -355,20 +360,20 @@ html, body {
   align-items: center;
   justify-content: center;
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .zone .filled-slot {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background-position: center;
-  background-size: cover;
+  background-size: contain;
   background-repeat: no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   color: white;
 }
@@ -425,15 +430,15 @@ html, body {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 14px;
 }
 
 .stat-card {
   background: var(--bg-2);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 12px;
+  padding: 14px;
 }
 
 .stat-card-header {
@@ -444,10 +449,22 @@ html, body {
 }
 
 .stat-card-header .team-name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   white-space: normal;
 }
+
+.start-record {
+  background: var(--bg-3);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+.start-record.qual { background: var(--green-bg); color: var(--green); }
+.start-record.elim { background: var(--red-bg);   color: var(--red); }
 
 .qual-rate {
   margin-left: auto;
@@ -458,14 +475,14 @@ html, body {
 .record-breakdown {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 4px 8px;
-  font-size: 12px;
-  margin-bottom: 8px;
+  gap: 5px 9px;
+  font-size: 13px;
+  margin-bottom: 10px;
 }
 
 .record-breakdown div {
   background: var(--bg-3);
-  padding: 4px 6px;
+  padding: 5px 7px;
   border-radius: 4px;
   display: flex;
   justify-content: space-between;
@@ -475,9 +492,9 @@ html, body {
 .record-breakdown .elim { color: var(--red); }
 
 .opp-line {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 .opp-line strong { color: var(--text); }
 
@@ -501,10 +518,73 @@ html, body {
 }
 
 .playoffs-round h3 {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text-dim);
   margin: 0 0 4px;
   text-align: center;
+}
+
+/* ---------- Playoffs Final Results panel ---------- */
+
+.playoffs-results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-self: center;
+  min-width: 230px;
+}
+
+.results-header {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #f1c40f;
+  text-align: center;
+  margin: 0 0 4px;
+}
+
+.result-card {
+  background: var(--bg-1);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow);
+}
+
+.result-card.champion {
+  border-color: #f1c40f;
+  box-shadow: 0 0 16px rgba(241, 196, 15, 0.25);
+}
+
+.result-card.runner-up {
+  border-color: var(--text-dim);
+}
+
+.result-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-dim);
+}
+
+.result-card.champion .result-label {
+  color: #f1c40f;
+}
+
+.result-logo {
+  width: 64px;
+  height: 64px;
+  font-size: 18px;
+}
+
+.result-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
 }
 
 /* ---------- Scrollbar tuning ---------- */

@@ -328,20 +328,20 @@ function recomputePlayoffs() {
   const po = APP.stages.playoffs;
   if (!po) return;
 
-  const buildOrKeep = (oldList, idx, teamA, teamB) => {
+  const buildOrKeep = (oldList, idx, teamA, teamB, format) => {
     if (!teamA || !teamB) return null;
     const prev = oldList && oldList[idx];
     const sameMatchup = prev && prev.teamA === teamA && prev.teamB === teamB;
     return {
-      teamA, teamB, format: "BO3",
+      teamA, teamB, format,
       winner: sameMatchup ? prev.winner : null,
     };
   };
 
   const qfWinners = (po.matchesByRound[1] || []).map(m => m.winner);
   const oldSF = po.matchesByRound[2] || [];
-  const sf1 = buildOrKeep(oldSF, 0, qfWinners[0], qfWinners[1]);
-  const sf2 = buildOrKeep(oldSF, 1, qfWinners[2], qfWinners[3]);
+  const sf1 = buildOrKeep(oldSF, 0, qfWinners[0], qfWinners[1], "BO3");
+  const sf2 = buildOrKeep(oldSF, 1, qfWinners[2], qfWinners[3], "BO3");
   const newSF = [];
   if (sf1) newSF.push(sf1);
   if (sf2) newSF.push(sf2);
@@ -350,7 +350,7 @@ function recomputePlayoffs() {
   const oldF = po.matchesByRound[3] || [];
   const newF = [];
   if (sf1 && sf2 && sf1.winner && sf2.winner) {
-    const f = buildOrKeep(oldF, 0, sf1.winner, sf2.winner);
+    const f = buildOrKeep(oldF, 0, sf1.winner, sf2.winner, "BO5");
     if (f) newF.push(f);
   }
   po.matchesByRound[3] = newF;
@@ -383,13 +383,19 @@ function runSimulationForCurrent() {
 
   // Defer to next tick so UI shows the "Simulating..." text.
   setTimeout(() => {
-    const firstUnplayedRound = stage.round || 1;
-    const result = window.MajorMC.runSimulation(stage, window.MajorMC.SIM_RUNS, firstUnplayedRound);
-    APP.lastSim[stageNum] = result;
-    APP.stateChangedSinceSim[stageNum] = false;
-    window.MajorUI.setSimStatus(`Done — ${result.runs} runs`);
-    btn.disabled = false;
-    refresh();
+    try {
+      const firstUnplayedRound = stage.round || 1;
+      const result = window.MajorMC.runSimulation(stage, window.MajorMC.SIM_RUNS, firstUnplayedRound);
+      APP.lastSim[stageNum] = result;
+      APP.stateChangedSinceSim[stageNum] = false;
+      window.MajorUI.setSimStatus(`Done — ${result.runs} runs`);
+      refresh();
+    } catch (e) {
+      console.error("Simulation failed:", e);
+      window.MajorUI.setSimStatus(`Error: ${e.message}`);
+    } finally {
+      btn.disabled = false;
+    }
   }, 30);
 }
 
@@ -498,11 +504,51 @@ function wireEvents() {
 
 // ---------- Boot ----------
 
+// Rename any legacy team names in the stored state so existing saves don't
+// keep displaying the old spelling. Add new entries here whenever a team in
+// data.js gets renamed but you want to preserve user progress.
+const LEGACY_NAME_RENAMES = {
+  "PARI": "Parivision",
+  "MGLZ": "Mongolz",
+};
+
+function migrateLegacyNames() {
+  const renameIn = (state) => {
+    if (!state) return;
+    if (Array.isArray(state.teams)) {
+      for (const t of state.teams) {
+        if (LEGACY_NAME_RENAMES[t.name]) t.name = LEGACY_NAME_RENAMES[t.name];
+        if (Array.isArray(t.opponentsFaced)) {
+          t.opponentsFaced = t.opponentsFaced.map(n => LEGACY_NAME_RENAMES[n] || n);
+        }
+      }
+    }
+    if (state.matchesByRound) {
+      for (const matches of Object.values(state.matchesByRound)) {
+        if (!Array.isArray(matches)) continue;
+        for (const m of matches) {
+          if (m && LEGACY_NAME_RENAMES[m.teamA]) m.teamA = LEGACY_NAME_RENAMES[m.teamA];
+          if (m && LEGACY_NAME_RENAMES[m.teamB]) m.teamB = LEGACY_NAME_RENAMES[m.teamB];
+          if (m && m.winner && LEGACY_NAME_RENAMES[m.winner]) {
+            m.winner = LEGACY_NAME_RENAMES[m.winner];
+          }
+        }
+      }
+    }
+  };
+  renameIn(APP.stages[1]);
+  renameIn(APP.stages[2]);
+  renameIn(APP.stages[3]);
+  renameIn(APP.stages.playoffs);
+}
+
 function boot() {
   const loaded = loadState();
   if (!loaded || !APP.stages[1]) {
     initStage1();
   }
+  // Rewrite any pre-rename team names from older saves.
+  migrateLegacyNames();
   // Re-derive each loaded stage to make sure it's consistent with current
   // simulator logic (e.g. if rules changed).
   if (APP.stages[1]) recomputeStage(1);
