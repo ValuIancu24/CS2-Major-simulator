@@ -1,0 +1,517 @@
+/* IEM Cologne 2026 Major Simulator — dark HLTV/CS2 inspired theme */
+
+:root {
+  --bg-0: #15181f;
+  --bg-1: #1c2030;
+  --bg-2: #232838;
+  --bg-3: #2c3245;
+  --border: #353b50;
+  --text: #d8dbe6;
+  --text-dim: #8d93a8;
+  --accent: #4a90e2;
+  --green: #2ecc71;
+  --green-bg: rgba(46, 204, 113, 0.18);
+  --green-border: rgba(46, 204, 113, 0.55);
+  --red: #e74c3c;
+  --red-bg: rgba(231, 76, 60, 0.18);
+  --red-border: rgba(231, 76, 60, 0.55);
+  --selected: #2ecc71;
+  --shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-0);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+#app {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+}
+
+/* ---------- Header ---------- */
+
+.top-bar {
+  padding: 24px 0 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+}
+
+.title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.stage-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--bg-1);
+  border-radius: 999px;
+  padding: 6px;
+  gap: 4px;
+}
+
+.stage-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.stage-tab.active {
+  background: var(--bg-3);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.stage-tab.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.stage-tab:not(.locked):not(.active):hover {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+.header-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-stats, .btn-reset-stage {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.btn-stats:hover, .btn-reset-stage:hover {
+  background: var(--bg-3);
+}
+
+/* ---------- Banner & simulate bar ---------- */
+
+.warning-banner {
+  background: rgba(241, 196, 15, 0.12);
+  border: 1px solid rgba(241, 196, 15, 0.4);
+  color: #f1c40f;
+  padding: 10px 16px;
+  border-radius: 6px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.simulate-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.btn-simulate {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+.btn-simulate:hover { filter: brightness(1.1); }
+.btn-simulate:disabled { opacity: 0.6; cursor: wait; }
+
+.sim-status {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.hidden { display: none !important; }
+
+/* ---------- Bracket columns ---------- */
+
+.bracket-view {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: 12px;
+}
+
+.bracket-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 220px;
+  flex-shrink: 0;
+}
+
+.record-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.record-group-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+.column-controls {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px;
+  align-self: flex-start;
+  margin-bottom: 6px;
+}
+
+.column-controls button {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.column-controls button:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+.column-controls .shuffle-icon { font-size: 14px; }
+
+/* ---------- Match card ---------- */
+
+.match-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+
+.match-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.match-vs {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.match-format {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 9px;
+  background: var(--bg-3);
+  color: var(--text-dim);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.team-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-3);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  flex: 1;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  min-width: 0;
+}
+
+.team-card:hover {
+  background: var(--bg-1);
+  border-color: var(--accent);
+}
+
+.team-card.winner {
+  background: var(--green-bg);
+  border-color: var(--green-border);
+}
+
+.team-card.loser {
+  opacity: 0.45;
+  filter: grayscale(0.4);
+}
+
+.team-card.non-clickable {
+  cursor: default;
+}
+.team-card.non-clickable:hover {
+  background: var(--bg-3);
+  border-color: transparent;
+}
+
+.team-logo {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.team-name {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* ---------- Qualified / Eliminated boxes ---------- */
+
+.zone {
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.zone-qualified {
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+}
+
+.zone-eliminated {
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+}
+
+.zone-header {
+  font-weight: 700;
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.zone .slot-row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.zone .empty-slot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--bg-1);
+  border: 1px dashed var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.zone .filled-slot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: white;
+}
+
+.zone .filled-slot[title] { cursor: help; }
+
+/* ---------- Modal ---------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+
+.modal-content {
+  background: var(--bg-1);
+  border-radius: 10px;
+  padding: 24px;
+  width: 100%;
+  max-width: 1100px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  border: 1px solid var(--border);
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-content h2 {
+  margin-top: 0;
+}
+
+/* ---------- Stats grid ---------- */
+
+.stats-empty {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.stat-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.stat-card-header .team-name {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: normal;
+}
+
+.qual-rate {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.record-breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px 8px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.record-breakdown div {
+  background: var(--bg-3);
+  padding: 4px 6px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.record-breakdown .qual { color: var(--green); }
+.record-breakdown .elim { color: var(--red); }
+
+.opp-line {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.opp-line strong { color: var(--text); }
+
+/* ---------- Playoffs ---------- */
+
+.playoffs-view {
+  margin-top: 24px;
+}
+
+.playoffs-bracket {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+}
+
+.playoffs-round {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.playoffs-round h3 {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin: 0 0 4px;
+  text-align: center;
+}
+
+/* ---------- Scrollbar tuning ---------- */
+
+.bracket-view::-webkit-scrollbar { height: 10px; }
+.bracket-view::-webkit-scrollbar-track { background: var(--bg-1); }
+.bracket-view::-webkit-scrollbar-thumb {
+  background: var(--bg-3);
+  border-radius: 5px;
+}

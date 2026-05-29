@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IEM Cologne 2026 Major Simulator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Top stage tabs -->
+    <header class="top-bar">
+      <h1 class="title">Simulator for IEM Cologne Major 2026</h1>
+
+      <nav class="stage-tabs" id="stage-tabs">
+        <button class="stage-tab active" data-stage="1">Stage 1</button>
+        <button class="stage-tab locked"  data-stage="2">Stage 2</button>
+        <button class="stage-tab locked"  data-stage="3">Stage 3</button>
+        <button class="stage-tab locked"  data-stage="playoffs">Playoffs</button>
+      </nav>
+
+      <div class="header-actions">
+        <button class="btn-stats" id="open-stats">Statistics</button>
+        <button class="btn-reset-stage" id="reset-stage">Reset Stage</button>
+      </div>
+    </header>
+
+    <!-- Persistent warning banner -->
+    <div class="warning-banner hidden" id="warning-banner">
+      ⚠️ Results have changed since last simulation — click <strong>Simulate</strong> to update statistics.
+    </div>
+
+    <!-- Simulate bar -->
+    <div class="simulate-bar">
+      <button class="btn-simulate" id="btn-simulate">Simulate from current state (1000x)</button>
+      <span class="sim-status" id="sim-status"></span>
+    </div>
+
+    <!-- Main bracket area -->
+    <main class="bracket-view" id="bracket-view"></main>
+
+    <!-- Statistics modal -->
+    <div class="modal hidden" id="stats-modal">
+      <div class="modal-content">
+        <button class="modal-close" id="close-stats">×</button>
+        <h2>Statistics — Last Simulation</h2>
+        <div id="stats-body" class="stats-body">
+          <p class="stats-empty">Run a simulation first.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Playoffs view -->
+    <section class="playoffs-view hidden" id="playoffs-view">
+      <h2>Playoffs Bracket</h2>
+      <div id="playoffs-bracket" class="playoffs-bracket"></div>
+    </section>
+
+  </div>
+
+  <script src="data.js"></script>
+  <script src="simulator.js"></script>
+  <script src="montecarlo.js"></script>
+  <script src="ui.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
