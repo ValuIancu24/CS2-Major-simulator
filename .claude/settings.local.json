@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"c:/Users/VALI/Desktop/Facultate/Facultate anii 1-3/IDEILE MELE DE APLICATII/CS2-Major-simulator/assets/logos\")",
+      "Bash(python -m http.server 8765)",
+      "Bash(echo \"started PID=$!\")",
+      "Bash(curl -s -o /tmp/index.html -w \"HTTP %{http_code}\\\\n\" http://localhost:8765/index.html)",
+      "Bash(node _smoketest.js)",
+      "Bash(rm _smoketest.js)",
+      "Bash(kill 477)",
+      "Bash(node _verifyseed.js)",
+      "Bash(node _verifycascade.js)",
+      "Bash(node _verifyhigherseed.js)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\VALI\\Desktop\\Facultate\\Facultate anii 1-3\\IDEILE MELE DE APLICATII\\CS2-Major-simulator\\assets"
+    ]
+  }
+}
