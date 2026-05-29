@@ -498,6 +498,274 @@ html, body {
 }
 .opp-line strong { color: var(--text); }
 
+/* ---------- Pickems modal ---------- */
+
+.pickem-header-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.pickem-instructions {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.btn-clear-pickems {
+  margin-left: auto;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.btn-clear-pickems:hover { background: var(--bg-3); color: var(--text); }
+
+/* Zones — visual destinations for picks */
+
+.pickem-zones {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.pickem-zone {
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: 2px solid var(--border);
+  background: var(--bg-2);
+  text-align: center;
+  min-width: 180px;
+}
+
+.pickem-zone.pickem-3-0  { border-color: var(--green-border); background: var(--green-bg); }
+.pickem-zone.pickem-qual { border-color: rgba(74, 144, 226, 0.55); background: rgba(74, 144, 226, 0.12); }
+.pickem-zone.pickem-0-3  { border-color: var(--red-border);   background: var(--red-bg); }
+
+.pickem-zone-header {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pickem-zone-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.pickem-zone-count {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.pickem-zone.pickem-3-0 .pickem-zone-label  { color: var(--green); }
+.pickem-zone.pickem-qual .pickem-zone-label { color: var(--accent); }
+.pickem-zone.pickem-0-3 .pickem-zone-label  { color: var(--red); }
+
+.pickem-zone-slots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.pickem-slot {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+}
+
+.pickem-slot.empty {
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px dashed currentColor;
+  opacity: 0.45;
+}
+
+.pickem-zone.pickem-3-0 .pickem-slot.empty  { color: var(--green); }
+.pickem-zone.pickem-qual .pickem-slot.empty { color: var(--accent); }
+.pickem-zone.pickem-0-3 .pickem-slot.empty  { color: var(--red); }
+
+.pickem-slot.filled {
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+}
+.pickem-slot.filled:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+}
+
+/* Pool — compact grid of all teams */
+
+.pickem-pool {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.pickem-chip {
+  background: var(--bg-2);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.15s, opacity 0.15s;
+}
+
+.pickem-chip-logo {
+  width: 36px;
+  height: 36px;
+}
+
+.pickem-chip-name {
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Chip becomes "empty" when its team is placed in a zone — dashed circle in
+   place of the logo, dimmed overall. Still shows the name so the user can find
+   it later. */
+.pickem-chip.assigned {
+  opacity: 0.45;
+  cursor: default;
+}
+.pickem-chip.assigned .pickem-chip-logo.placeholder {
+  background: transparent !important;
+  background-image: none !important;
+  border: 2px dashed var(--text-dim);
+  color: transparent;
+}
+
+/* ---------- Drag & drop visual states ---------- */
+
+.draggable { cursor: grab; }
+.draggable:active { cursor: grabbing; }
+.dragging { opacity: 0.35; }
+
+.pickem-slot.drag-over {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45);
+  transform: scale(1.08);
+}
+
+.pickem-pool {
+  border-radius: 8px;
+  transition: background 0.12s, outline-color 0.12s;
+}
+.pickem-pool.drag-over {
+  background: rgba(255, 255, 255, 0.04);
+  outline: 2px dashed var(--border);
+  outline-offset: -2px;
+}
+
+/* ---------- Pickem stats panel (inside Statistics modal) ---------- */
+
+.pickem-panel {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.pickem-panel h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.pickem-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-view-pickems {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-view-pickems:hover {
+  background: var(--bg-1);
+  border-color: var(--accent);
+}
+
+.pickem-panel.empty .stats-empty {
+  margin: 0;
+}
+
+.pickem-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.pickem-metric {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+
+.pickem-metric.highlight {
+  border-color: var(--green-border);
+  background: var(--green-bg);
+}
+
+.pickem-metric-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+
+.pickem-metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pickem-metric.highlight .pickem-metric-value {
+  color: var(--green);
+}
+
 /* ---------- Playoffs ---------- */
 
 .playoffs-view {

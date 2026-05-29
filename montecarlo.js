@@ -77,12 +77,19 @@ function runSimulation(initialState, runs = SIM_RUNS, firstUnplayedRound = null)
     };
   }
 
+  // Per-run snapshot of every team's final record. Kept so pickem stats can
+  // be (re)computed without re-running the 1000 sims when the user just
+  // tweaks their picks.
+  const runFinals = [];
+
   for (let i = 0; i < runs; i++) {
     const { state, opponentsByRound } = simulateOneRun(initialState);
+    const finalsThisRun = {};
     for (const t of state.teams) {
       const s = stats[t.name];
       s.runs += 1;
       const rec = `${t.wins}-${t.losses}`;
+      finalsThisRun[t.name] = rec;
       if (s.records[rec] !== undefined) s.records[rec] += 1;
       if (t.status === "qualified") s.qualified += 1;
       else if (t.status === "eliminated") s.eliminated += 1;
@@ -97,13 +104,63 @@ function runSimulation(initialState, runs = SIM_RUNS, firstUnplayedRound = null)
         s.opponentsByRound[r][oppName] = (s.opponentsByRound[r][oppName] || 0) + 1;
       }
     }
+    runFinals.push(finalsThisRun);
   }
 
-  return { stats, runs };
+  return { stats, runs, runFinals };
+}
+
+// Score a pickem configuration against the cached per-run final records.
+// Returns { expected, distribution, pGte5, pPerfect, totalPicks, runs }.
+// `pickems` shape: { threeZero:[name,...], qualify:[name,...], zeroThree:[name,...] }
+function computePickemStats(runFinals, pickems) {
+  const totalPicks =
+    pickems.threeZero.length + pickems.qualify.length + pickems.zeroThree.length;
+  if (!runFinals || runFinals.length === 0 || totalPicks === 0) {
+    return { expected: 0, distribution: [], pGte5: 0, pPerfect: 0, totalPicks, runs: 0 };
+  }
+  const maxScore = 10; // 2 + 6 + 2 when picks are full; we still graph up to 10
+  const dist = new Array(maxScore + 1).fill(0);
+
+  for (const finals of runFinals) {
+    let correct = 0;
+    for (const name of pickems.threeZero) {
+      if (finals[name] === "3-0") correct++;
+    }
+    for (const name of pickems.zeroThree) {
+      if (finals[name] === "0-3") correct++;
+    }
+    for (const name of pickems.qualify) {
+      const r = finals[name];
+      if (r === "3-1" || r === "3-2") correct++;
+    }
+    if (correct >= 0 && correct <= maxScore) dist[correct]++;
+  }
+
+  const runs = runFinals.length;
+  let expectedSum = 0;
+  for (let k = 0; k <= maxScore; k++) expectedSum += k * dist[k];
+  const expected = expectedSum / runs;
+
+  const cumulativeGte = (k) => {
+    let s = 0;
+    for (let i = k; i <= maxScore; i++) s += dist[i];
+    return s / runs;
+  };
+
+  return {
+    expected,
+    distribution: dist,
+    pGte5: cumulativeGte(5),
+    pPerfect: cumulativeGte(maxScore),
+    totalPicks,
+    runs,
+  };
 }
 
 window.MajorMC = {
   SIM_RUNS,
   runSimulation,
+  computePickemStats,
   winProbability,
 };
