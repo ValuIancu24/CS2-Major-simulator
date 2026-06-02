@@ -855,6 +855,141 @@ html, body {
   color: var(--text);
 }
 
+/* ---------- Page switch (Simulator / Predictions) ---------- */
+
+.page-nav {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  background: var(--bg-1);
+  border-radius: 999px;
+  padding: 6px;
+  align-self: center;
+}
+
+.page-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  padding: 10px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.page-tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+.page-tab:not(.active):hover {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+/* ---------- Predictions page header ---------- */
+
+.pred-actions-bar {
+  align-items: center;
+}
+
+.pred-points-display {
+  margin-right: auto;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--green);
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pred-help {
+  font-size: 13px;
+  color: var(--text-dim);
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+}
+.pred-help strong { color: var(--text); }
+
+/* ---------- Prediction match-card states ---------- */
+
+/* Pending pick — distinct blue highlight (vs. the green "confirmed" winner). */
+.team-card.predicted {
+  background: rgba(74, 144, 226, 0.18);
+  border-color: var(--accent);
+}
+
+/* A pick that turned out wrong (denied) — red, struck-through feel. */
+.team-card.wrong {
+  background: var(--red-bg);
+  border-color: var(--red-border);
+  opacity: 0.7;
+}
+
+.match-card.predict.resolved-confirmed {
+  border-color: var(--green-border);
+}
+.match-card.predict.resolved-denied {
+  border-color: var(--red-border);
+}
+
+.pred-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.pred-btn {
+  flex: 1 1 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--bg-3);
+  color: var(--text);
+  transition: background 0.15s, border-color 0.15s;
+}
+.pred-correct:hover {
+  background: var(--green-bg);
+  border-color: var(--green-border);
+  color: var(--green);
+}
+.pred-wrong:hover {
+  background: var(--red-bg);
+  border-color: var(--red-border);
+  color: var(--red);
+}
+
+.pred-result {
+  flex: 1 1 0;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  padding: 5px 8px;
+  border-radius: 4px;
+}
+.pred-result.correct { color: var(--green); background: var(--green-bg); }
+.pred-result.wrong   { color: var(--red);   background: var(--red-bg); }
+
+.pred-undo {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.pred-undo:hover { background: var(--bg-3); color: var(--text); }
+
 /* ---------- Scrollbar tuning ---------- */
 
 .bracket-view::-webkit-scrollbar { height: 10px; }

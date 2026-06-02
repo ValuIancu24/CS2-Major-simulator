@@ -98,6 +98,8 @@ function teamChip(team, options = {}) {
   if (!clickable) classes.push("non-clickable");
   if (highlight === "winner") classes.push("winner");
   if (highlight === "loser") classes.push("loser");
+  if (highlight === "predicted") classes.push("predicted");
+  if (highlight === "wrong") classes.push("wrong");
 
   const card = el("div", { class: classes.join(" ") }, [logoEl, nameEl]);
   if (clickable && onClick) {
@@ -118,18 +120,42 @@ function teamSlot(team) {
   return slot;
 }
 
+// ---------- Render context ----------
+//
+// Both the Simulator and Predictions pages reuse this rendering layer. The
+// context object decides which controller receives clicks and whether match
+// cards render in plain "simulate" mode or "predict" mode (with predicted /
+// confirmed / denied highlighting + Correct/Wrong buttons). Omitting ctx
+// reproduces the original Simulator behavior exactly.
+function normCtx(ctx) {
+  return {
+    controller: (ctx && ctx.controller) || window.MajorApp,
+    mode: (ctx && ctx.mode) || "simulate",
+    rootId: (ctx && ctx.rootId) || "bracket-view",
+    playoffsRootId: (ctx && ctx.playoffsRootId) || "playoffs-bracket",
+  };
+}
+
 // ---------- Match card ----------
 
-function renderMatchCard(state, match, matchIndex, round) {
+function renderMatchCard(state, match, matchIndex, round, ctx) {
+  const c = normCtx(ctx);
   const teamA = match.teamA ? window.MajorSim.teamByName(state, match.teamA) : null;
   const teamB = match.teamB ? window.MajorSim.teamByName(state, match.teamB) : null;
+
+  const fmt = match.format
+    || (teamA && teamB ? window.MajorSim.matchFormat(state, teamA, teamB) : "");
+
+  if (c.mode === "predict") {
+    return renderPredictionMatchCard(state, match, matchIndex, round, c, teamA, teamB, fmt);
+  }
 
   const winnerName = match.winner;
   const highlightA = winnerName ? (winnerName === match.teamA ? "winner" : "loser") : null;
   const highlightB = winnerName ? (winnerName === match.teamB ? "winner" : "loser") : null;
 
-  const onClickA = teamA ? () => window.MajorApp.handleMatchClick(round, matchIndex, teamA.name) : null;
-  const onClickB = teamB ? () => window.MajorApp.handleMatchClick(round, matchIndex, teamB.name) : null;
+  const onClickA = teamA ? () => c.controller.handleMatchClick(round, matchIndex, teamA.name) : null;
+  const onClickB = teamB ? () => c.controller.handleMatchClick(round, matchIndex, teamB.name) : null;
 
   const row = el("div", { class: "match-row" }, [
     teamChip(teamA, { clickable: !!teamA, onClick: onClickA, highlight: highlightA }),
@@ -137,12 +163,91 @@ function renderMatchCard(state, match, matchIndex, round) {
     teamChip(teamB, { clickable: !!teamB, onClick: onClickB, highlight: highlightB }),
   ]);
 
-  const fmt = match.format
-    || (teamA && teamB ? window.MajorSim.matchFormat(state, teamA, teamB) : "");
-
   return el("div", { class: "match-card" }, [
     fmt ? el("div", { class: "match-format" }, [fmt]) : null,
     row,
+  ]);
+}
+
+// Predict-mode match card: highlights the predicted pick and exposes
+// Correct/Wrong buttons once a pick is made.
+//   - pending  : predicted team gets the blue "predicted" highlight.
+//   - confirmed: predicted team = winner (green), "+3" badge.
+//   - denied   : the real winner (opponent) = winner (green), predicted team
+//                shown as a wrong pick (red).
+function renderPredictionMatchCard(state, match, matchIndex, round, c, teamA, teamB, fmt) {
+  const predicted = match.predicted || null;
+  const resolved = match.resolved || null;
+  const winner = match.winner || null; // effective winner used by the engine
+
+  const highlightFor = (name) => {
+    if (!name || !predicted) return null;
+    if (resolved === "confirmed") return name === predicted ? "winner" : "loser";
+    if (resolved === "denied") {
+      if (name === winner) return "winner";          // reality advanced this team
+      if (name === predicted) return "wrong";        // our pick lost
+      return "loser";
+    }
+    // pending
+    return name === predicted ? "predicted" : null;
+  };
+
+  const onClickA = teamA ? () => c.controller.handleMatchClick(round, matchIndex, teamA.name) : null;
+  const onClickB = teamB ? () => c.controller.handleMatchClick(round, matchIndex, teamB.name) : null;
+
+  const row = el("div", { class: "match-row" }, [
+    teamChip(teamA, { clickable: !!teamA, onClick: onClickA, highlight: highlightFor(match.teamA) }),
+    el("span", { class: "match-vs" }, ["vs"]),
+    teamChip(teamB, { clickable: !!teamB, onClick: onClickB, highlight: highlightFor(match.teamB) }),
+  ]);
+
+  const cardClasses = ["match-card", "predict"];
+  if (resolved) cardClasses.push("resolved-" + resolved);
+
+  const children = [
+    fmt ? el("div", { class: "match-format" }, [fmt]) : null,
+    row,
+  ];
+
+  // Action footer — only meaningful once the user has predicted a winner.
+  if (predicted) {
+    children.push(renderPredictionActions(round, matchIndex, c, resolved));
+  }
+
+  return el("div", { class: cardClasses.join(" ") }, children);
+}
+
+function renderPredictionActions(round, matchIndex, c, resolved) {
+  if (resolved === "confirmed") {
+    return el("div", { class: "pred-actions" }, [
+      el("span", { class: "pred-result correct" }, ["✓ Correct +3"]),
+      el("button", {
+        class: "pred-undo",
+        title: "Undo — reopen this prediction",
+        onClick: () => c.controller.handleReopen(round, matchIndex),
+      }, ["Undo"]),
+    ]);
+  }
+  if (resolved === "denied") {
+    return el("div", { class: "pred-actions" }, [
+      el("span", { class: "pred-result wrong" }, ["✗ Wrong +0"]),
+      el("button", {
+        class: "pred-undo",
+        title: "Undo — reopen this prediction",
+        onClick: () => c.controller.handleReopen(round, matchIndex),
+      }, ["Undo"]),
+    ]);
+  }
+  // Pending: offer Correct / Wrong.
+  return el("div", { class: "pred-actions" }, [
+    el("button", {
+      class: "pred-btn pred-correct",
+      onClick: () => c.controller.handleConfirm(round, matchIndex),
+    }, ["✓ Correct"]),
+    el("button", {
+      class: "pred-btn pred-wrong",
+      onClick: () => c.controller.handleDeny(round, matchIndex),
+    }, ["✗ Wrong"]),
   ]);
 }
 
@@ -157,7 +262,7 @@ function renderPlaceholderMatchCard() {
 
 // ---------- Group rendering ----------
 
-function renderMatchGroup(state, round, record, expectedSize) {
+function renderMatchGroup(state, round, record, expectedSize, ctx) {
   const matches = state.matchesByRound[round] || [];
   // Find matches whose participants currently sit at this record (pre-match).
   // We rely on the fact that matchups are generated based on pre-round records,
@@ -174,7 +279,7 @@ function renderMatchGroup(state, round, record, expectedSize) {
     for (let i = 0; i < groupMatches.length; i++) {
       const m = groupMatches[i];
       const matchIdx = matches.indexOf(m);
-      children.push(renderMatchCard(state, m, matchIdx, round));
+      children.push(renderMatchCard(state, m, matchIdx, round, ctx));
     }
   } else {
     for (let i = 0; i < expectedSize; i++) {
@@ -218,27 +323,28 @@ function renderZone(state, kind, records, slotCounts) {
 
 // ---------- Round column ----------
 
-function renderControls(round) {
+function renderControls(round, ctx) {
+  const c = normCtx(ctx);
   const reset = el("button", {
-    onClick: () => window.MajorApp.handleRoundReset(round),
+    onClick: () => c.controller.handleRoundReset(round),
   }, ["Reset"]);
   const shuffle = el("button", {
-    onClick: () => window.MajorApp.handleRoundShuffle(round),
+    onClick: () => c.controller.handleRoundShuffle(round),
     title: "Random winners",
   }, [el("span", { class: "shuffle-icon" }, ["⇄"])]);
   const higher = el("button", {
-    onClick: () => window.MajorApp.handleRoundHigherSeed(round),
+    onClick: () => c.controller.handleRoundHigherSeed(round),
   }, ["Higher seed"]);
   return el("div", { class: "column-controls" }, [reset, shuffle, higher]);
 }
 
-function renderRoundColumn(state, round) {
+function renderRoundColumn(state, round, ctx) {
   const layout = ROUND_LAYOUT[round];
-  const children = [renderControls(round)];
+  const children = [renderControls(round, ctx)];
 
   for (const item of layout) {
     if (item.kind === "matches") {
-      children.push(renderMatchGroup(state, round, item.record, item.size));
+      children.push(renderMatchGroup(state, round, item.record, item.size, ctx));
     } else {
       children.push(renderZone(state, item.kind, item.records, item.slotCounts));
     }
@@ -249,11 +355,12 @@ function renderRoundColumn(state, round) {
 
 // ---------- Top-level bracket render ----------
 
-function renderBracket(state) {
-  const root = document.getElementById("bracket-view");
+function renderBracket(state, ctx) {
+  const c = normCtx(ctx);
+  const root = document.getElementById(c.rootId);
   root.innerHTML = "";
   for (let r = 1; r <= 5; r++) {
-    root.appendChild(renderRoundColumn(state, r));
+    root.appendChild(renderRoundColumn(state, r, c));
   }
 }
 
@@ -358,8 +465,101 @@ function setSimStatus(text) {
 
 // ---------- Playoffs (stub) ----------
 
-function renderPlayoffs(state) {
-  const root = document.getElementById("playoffs-bracket");
+// One playoff match card. In predict mode it carries the same predicted /
+// confirmed / denied highlighting and Correct/Wrong buttons as the Swiss cards.
+function renderPlayoffMatchCard(m, round, matchIndex, format, c) {
+  const teamA = m.teamA ? { name: m.teamA } : null;
+  const teamB = m.teamB ? { name: m.teamB } : null;
+
+  if (c.mode === "predict") {
+    const predicted = m.predicted || null;
+    const resolved = m.resolved || null;
+    const winner = m.winner || null;
+
+    const highlightFor = (name) => {
+      if (!name || !predicted) return null;
+      if (resolved === "confirmed") return name === predicted ? "winner" : "loser";
+      if (resolved === "denied") {
+        if (name === winner) return "winner";
+        if (name === predicted) return "wrong";
+        return "loser";
+      }
+      return name === predicted ? "predicted" : null;
+    };
+
+    const row = el("div", { class: "match-row" }, [
+      teamChip(teamA, {
+        clickable: !!teamA,
+        highlight: highlightFor(m.teamA),
+        onClick: teamA ? () => c.controller.handlePlayoffsClick(round, matchIndex, m.teamA) : null,
+      }),
+      el("span", { class: "match-vs" }, ["vs"]),
+      teamChip(teamB, {
+        clickable: !!teamB,
+        highlight: highlightFor(m.teamB),
+        onClick: teamB ? () => c.controller.handlePlayoffsClick(round, matchIndex, m.teamB) : null,
+      }),
+    ]);
+
+    const cardClasses = ["match-card", "predict"];
+    if (resolved) cardClasses.push("resolved-" + resolved);
+    const children = [el("div", { class: "match-format" }, [format]), row];
+    if (predicted) {
+      children.push(renderPlayoffPredictionActions(round, matchIndex, c, resolved));
+    }
+    return el("div", { class: cardClasses.join(" ") }, children);
+  }
+
+  const highlightA = m.winner ? (m.winner === m.teamA ? "winner" : "loser") : null;
+  const highlightB = m.winner ? (m.winner === m.teamB ? "winner" : "loser") : null;
+  const row = el("div", { class: "match-row" }, [
+    teamChip(teamA, {
+      clickable: !!teamA,
+      highlight: highlightA,
+      onClick: teamA ? () => c.controller.handlePlayoffsClick(round, matchIndex, m.teamA) : null,
+    }),
+    el("span", { class: "match-vs" }, ["vs"]),
+    teamChip(teamB, {
+      clickable: !!teamB,
+      highlight: highlightB,
+      onClick: teamB ? () => c.controller.handlePlayoffsClick(round, matchIndex, m.teamB) : null,
+    }),
+  ]);
+  return el("div", { class: "match-card" }, [
+    el("div", { class: "match-format" }, [format]),
+    row,
+  ]);
+}
+
+// Mirrors renderPredictionActions but targets the playoff controller hooks.
+function renderPlayoffPredictionActions(round, matchIndex, c, resolved) {
+  if (resolved === "confirmed" || resolved === "denied") {
+    const correct = resolved === "confirmed";
+    return el("div", { class: "pred-actions" }, [
+      el("span", { class: "pred-result " + (correct ? "correct" : "wrong") },
+        [correct ? "✓ Correct +3" : "✗ Wrong +0"]),
+      el("button", {
+        class: "pred-undo",
+        title: "Undo — reopen this prediction",
+        onClick: () => c.controller.handlePlayoffsReopen(round, matchIndex),
+      }, ["Undo"]),
+    ]);
+  }
+  return el("div", { class: "pred-actions" }, [
+    el("button", {
+      class: "pred-btn pred-correct",
+      onClick: () => c.controller.handlePlayoffsConfirm(round, matchIndex),
+    }, ["✓ Correct"]),
+    el("button", {
+      class: "pred-btn pred-wrong",
+      onClick: () => c.controller.handlePlayoffsDeny(round, matchIndex),
+    }, ["✗ Wrong"]),
+  ]);
+}
+
+function renderPlayoffs(state, ctx) {
+  const c = normCtx(ctx);
+  const root = document.getElementById(c.playoffsRootId);
   root.innerHTML = "";
   if (!state) {
     root.appendChild(el("p", {}, ["Complete Stage 3 to unlock playoffs."]));
@@ -378,28 +578,7 @@ function renderPlayoffs(state) {
     const matches = state.matchesByRound?.[r + 1] || [];
     for (let i = 0; i < rounds[r].count; i++) {
       const m = matches[i] || { teamA: null, teamB: null, winner: null, format: rounds[r].format };
-      const teamA = m.teamA ? { name: m.teamA } : null;
-      const teamB = m.teamB ? { name: m.teamB } : null;
-      const highlightA = m.winner ? (m.winner === m.teamA ? "winner" : "loser") : null;
-      const highlightB = m.winner ? (m.winner === m.teamB ? "winner" : "loser") : null;
-
-      const row = el("div", { class: "match-row" }, [
-        teamChip(teamA, {
-          clickable: !!teamA,
-          highlight: highlightA,
-          onClick: teamA ? () => window.MajorApp.handlePlayoffsClick(r + 1, i, m.teamA) : null,
-        }),
-        el("span", { class: "match-vs" }, ["vs"]),
-        teamChip(teamB, {
-          clickable: !!teamB,
-          highlight: highlightB,
-          onClick: teamB ? () => window.MajorApp.handlePlayoffsClick(r + 1, i, m.teamB) : null,
-        }),
-      ]);
-      col.appendChild(el("div", { class: "match-card" }, [
-        el("div", { class: "match-format" }, [rounds[r].format]),
-        row,
-      ]));
+      col.appendChild(renderPlayoffMatchCard(m, r + 1, i, rounds[r].format, c));
     }
     root.appendChild(col);
   }

@@ -9,9 +9,18 @@
 <body>
   <div id="app">
 
-    <!-- Top stage tabs -->
+    <!-- Title + top-level page switch (Simulator / Predictions) -->
     <header class="top-bar">
       <h1 class="title">Simulator for IEM Cologne Major 2026</h1>
+
+      <nav class="page-nav" id="page-nav">
+        <button class="page-tab active" data-page="simulator">Simulator</button>
+        <button class="page-tab" data-page="predictions">Predictions</button>
+      </nav>
+    </header>
+
+    <!-- ============== SIMULATOR PAGE ============== -->
+    <section id="simulator-page">
 
       <nav class="stage-tabs" id="stage-tabs">
         <button class="stage-tab active" data-stage="1">Stage 1</button>
@@ -25,21 +34,58 @@
         <button class="btn-stats" id="open-stats">Statistics</button>
         <button class="btn-reset-stage" id="reset-stage">Reset Stage</button>
       </div>
-    </header>
 
-    <!-- Persistent warning banner -->
-    <div class="warning-banner hidden" id="warning-banner">
-      ⚠️ Results have changed since last simulation — click <strong>Simulate</strong> to update statistics.
-    </div>
+      <!-- Persistent warning banner -->
+      <div class="warning-banner hidden" id="warning-banner">
+        ⚠️ Results have changed since last simulation — click <strong>Simulate</strong> to update statistics.
+      </div>
 
-    <!-- Simulate bar -->
-    <div class="simulate-bar">
-      <button class="btn-simulate" id="btn-simulate">Simulate from current state (1000x)</button>
-      <span class="sim-status" id="sim-status"></span>
-    </div>
+      <!-- Simulate bar -->
+      <div class="simulate-bar">
+        <button class="btn-simulate" id="btn-simulate">Simulate from current state (1000x)</button>
+        <span class="sim-status" id="sim-status"></span>
+      </div>
 
-    <!-- Main bracket area -->
-    <main class="bracket-view" id="bracket-view"></main>
+      <!-- Main bracket area -->
+      <main class="bracket-view" id="bracket-view"></main>
+
+      <!-- Playoffs view -->
+      <section class="playoffs-view hidden" id="playoffs-view">
+        <h2>Playoffs Bracket</h2>
+        <div id="playoffs-bracket" class="playoffs-bracket"></div>
+      </section>
+
+    </section>
+
+    <!-- ============== PREDICTIONS PAGE ============== -->
+    <section id="predictions-page" class="hidden">
+
+      <nav class="stage-tabs" id="pred-stage-tabs">
+        <button class="stage-tab active" data-stage="1">Stage 1</button>
+        <button class="stage-tab locked"  data-stage="2">Stage 2</button>
+        <button class="stage-tab locked"  data-stage="3">Stage 3</button>
+        <button class="stage-tab locked"  data-stage="playoffs">Playoffs</button>
+      </nav>
+
+      <div class="header-actions pred-actions-bar">
+        <span class="pred-points-display" id="pred-points">Prediction points: 0</span>
+        <button class="btn-reset-stage" id="pred-reset-stage">Reset Stage</button>
+      </div>
+
+      <div class="pred-help">
+        Click a team to predict the winner. Once the real match is over, mark your
+        prediction <strong>✓ Correct</strong> (+3 points) or <strong>✗ Wrong</strong>.
+        Marking a result re-shapes the matchups below — the Simulator page is unaffected.
+      </div>
+
+      <main class="bracket-view" id="pred-bracket-view"></main>
+
+      <section class="playoffs-view hidden" id="pred-playoffs-view">
+        <h2>Playoffs Bracket</h2>
+        <div id="pred-playoffs-bracket" class="playoffs-bracket"></div>
+      </section>
+
+    </section>
 
     <!-- Statistics modal -->
     <div class="modal hidden" id="stats-modal">
@@ -61,12 +107,6 @@
       </div>
     </div>
 
-    <!-- Playoffs view -->
-    <section class="playoffs-view hidden" id="playoffs-view">
-      <h2>Playoffs Bracket</h2>
-      <div id="playoffs-bracket" class="playoffs-bracket"></div>
-    </section>
-
   </div>
 
   <script src="data.js"></script>
@@ -74,5 +114,6 @@
   <script src="montecarlo.js"></script>
   <script src="ui.js"></script>
   <script src="main.js"></script>
+  <script src="predictions.js"></script>
 </body>
 </html>
