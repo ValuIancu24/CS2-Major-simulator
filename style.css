@@ -998,3 +998,86 @@ html, body {
   background: var(--bg-3);
   border-radius: 5px;
 }
+
+/* =====================================================================
+   Mobile / narrow screens (phones, small tablets in portrait).
+   Additive only — desktop layout above is untouched.
+   ===================================================================== */
+
+@media (max-width: 768px) {
+  #app {
+    /* Drop the global down-scale; we set real mobile sizes below instead. */
+    zoom: 1;
+    padding: 0 10px 24px;
+  }
+
+  /* ---- Header ---- */
+  .top-bar { padding: 14px 0 8px; gap: 12px; }
+  .title { font-size: 19px; letter-spacing: 0.3px; }
+
+  .page-nav { width: 100%; }
+  .page-tab { flex: 1 1 0; padding: 10px 0; font-size: 14px; text-align: center; }
+
+  .stage-tabs { padding: 5px; gap: 3px; }
+  .stage-tab { padding: 11px 4px; font-size: 12px; text-align: center; }
+
+  .header-actions { justify-content: center; flex-wrap: wrap; }
+  .btn-stats, .btn-reset-stage { padding: 9px 14px; font-size: 13px; }
+
+  .pred-actions-bar { flex-wrap: wrap; gap: 8px; }
+  .pred-points-display { margin-right: 0; width: 100%; text-align: center; font-size: 14px; }
+
+  .pred-help { font-size: 12px; padding: 9px 12px; margin-bottom: 12px; }
+
+  .warning-banner { font-size: 13px; padding: 10px 12px; }
+
+  /* ---- Simulate bar ---- */
+  .simulate-bar { flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 14px; }
+  .btn-simulate { padding: 13px 18px; font-size: 14px; }
+  .sim-status { text-align: center; }
+
+  /* ---- Swiss bracket: swipe horizontally through rounds ---- */
+  .bracket-view {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 12px;
+    scroll-snap-type: x proximity;
+  }
+  .bracket-column {
+    flex: 0 0 auto;
+    width: 200px;
+    scroll-snap-align: start;
+    gap: 12px;
+  }
+
+  /* Stack the two teams in each match so full names fit on a narrow column. */
+  .match-row { flex-direction: column; align-items: stretch; gap: 5px; }
+  .match-vs { align-self: center; }
+  .team-card { flex: 1 1 auto; }
+
+  /* ---- Modals (Statistics / Pickems) ---- */
+  .modal { padding: 10px; }
+  .modal-content { padding: 16px; max-height: 92vh; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .pickem-zones { gap: 10px; }
+  .pickem-zone { min-width: 140px; padding: 10px 12px; }
+  .pickem-pool { grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: 8px; }
+  .pickem-metrics { grid-template-columns: 1fr; }
+
+  /* ---- Playoffs: swipe horizontally too ---- */
+  .playoffs-bracket {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .playoffs-round { min-width: 190px; flex: 0 0 auto; }
+  .playoffs-results { min-width: 190px; align-self: stretch; }
+}
+
+@media (max-width: 400px) {
+  .title { font-size: 17px; }
+  .stage-tab { font-size: 11px; padding: 10px 2px; }
+  .bracket-column { width: 175px; }
+}
