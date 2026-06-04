@@ -999,6 +999,61 @@ html, body {
   border-radius: 5px;
 }
 
+/* ---------- How-to box & modal ---------- */
+
+.btn-howto {
+  align-self: center;
+  background: var(--bg-2);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 10px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.btn-howto:hover {
+  background: var(--bg-3);
+  box-shadow: 0 0 10px rgba(74, 144, 226, 0.35);
+}
+
+.howto-content {
+  max-width: 640px;
+}
+
+.howto-section {
+  font-size: 16px;
+  color: var(--accent);
+  margin: 18px 0 8px;
+}
+
+.howto-steps {
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.howto-steps li {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.howto-steps strong { color: var(--text); }
+
+.howto-note {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin: 0;
+}
+.howto-note strong { color: var(--text); }
+
 /* =====================================================================
    Mobile / narrow screens (phones, small tablets in portrait).
    Additive only — desktop layout above is untouched.
@@ -1017,6 +1072,9 @@ html, body {
 
   .page-nav { width: 100%; }
   .page-tab { flex: 1 1 0; padding: 10px 0; font-size: 14px; text-align: center; }
+
+  .btn-howto { width: 100%; font-size: 13px; }
+  .howto-steps li, .howto-note, .howto-section { font-size: 13px; }
 
   .stage-tabs { padding: 5px; gap: 3px; }
   .stage-tab { padding: 11px 4px; font-size: 12px; text-align: center; }

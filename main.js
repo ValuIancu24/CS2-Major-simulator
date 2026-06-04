@@ -662,6 +662,18 @@ function wireEvents() {
       document.getElementById("pickems-modal").classList.add("hidden");
     }
   });
+
+  document.getElementById("open-howto").addEventListener("click", () => {
+    document.getElementById("howto-modal").classList.remove("hidden");
+  });
+  document.getElementById("close-howto").addEventListener("click", () => {
+    document.getElementById("howto-modal").classList.add("hidden");
+  });
+  document.getElementById("howto-modal").addEventListener("click", (e) => {
+    if (e.target.id === "howto-modal") {
+      document.getElementById("howto-modal").classList.add("hidden");
+    }
+  });
 }
 
 // ---------- Boot ----------
